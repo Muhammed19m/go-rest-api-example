@@ -1,16 +1,22 @@
 package handler
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
-	dbhand "rest-api/internal/db"
+	"rest-api/internal/database"
 	"rest-api/internal/model"
 	"strconv"
 
 	"github.com/gorilla/mux"
 )
+type Server struct {
+	db *sql.DB
+}
+// 
+
 
 // функция обработчик, которая обрабатывает метод POST
 // запрос:
@@ -20,27 +26,22 @@ import (
 // 	operationType: DEPOSIT or WITHDRAW,
 // 	amount: 1000
 // }`
-func HandleTransaction(w http.ResponseWriter, r *http.Request) {
+func /* (s *Server) */HandleTransaction(w http.ResponseWriter, r *http.Request) {
 	
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-		return
-	}
-	defer r.Body.Close()
 	var transaction model.Transaction
-	err = json.Unmarshal(body, &transaction)
-	if err != nil {
-		http.Error(w, "Invalid JSON format", http.StatusBadRequest)
-		return
+	if err := UnmarshalBody(r, &transaction); err != nil{
+
 	}
+	// +валидация OperationType
+	// +вызов бизнес логики с передачей параметров, полученные из запроса
+	// +обработка результата
 	if transaction.OperationType == model.DEPOSIT {
-		if err:=dbhand.Deposit(transaction); err != nil {
+		if err:=database.Deposit(transaction); err != nil {
 			http.Error(w, "error "+err.Error(), http.StatusInternalServerError)
 		}
 	} else if transaction.OperationType == model.WITHDRAW {
 		
-		if err:=dbhand.Withdraw(transaction); err != nil {
+		if err:=database.Withdraw(transaction); err != nil {
 			http.Error(w, "error"+err.Error(), http.StatusInternalServerError)
 		}
 	} else {
@@ -49,6 +50,22 @@ func HandleTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 }
 	
+func UnmarshalBody(r *http.Request, a any) error {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		// http.Error(w, "Failed to read request body", http.StatusInternalServerError)
+		return err
+	}
+	defer r.Body.Close()
+	err = json.Unmarshal(body, a)
+	if err != nil {
+		// http.Error(w, "Invalid JSON format", http.StatusBadRequest)
+		return err
+	}
+
+	return nil
+}
+
 	
 	
 		// функция обработчик, которая обрабатывает метод GET
@@ -60,11 +77,11 @@ func GetBalance(w http.ResponseWriter, r *http.Request) {
 
 	uuid, _/* err_conv */ := strconv.ParseInt(wallet_uuid, 10, 32) 
 
-	balance, err := dbhand.GetBalanceByUUID(int(uuid))
+	balance, err := database.GetBalanceByUUID(int(uuid))
 
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			dbhand.CreateWalletByUUID(int(uuid), 0)
+			database.CreateWalletByUUID(int(uuid), 0)
 			w.Write([]byte("0"))
 		} else {
 			http.Error(w, "Invalid UUID format", http.StatusBadRequest)
@@ -73,6 +90,8 @@ func GetBalance(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(fmt.Sprint(balance)))
 	}
 }
+
+// func getIntVarFromPath(path string) (int, error) {}
 
 
 
