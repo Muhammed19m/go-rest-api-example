@@ -16,7 +16,7 @@ func Run(config *config.Config) error {
 	}
 
 	// defer dbhand.Close()
-	if err:= server.Run(server.Config{Port: fmt.Sprint(config.Port())}); err != nil {
+	if err:= server.Run(server.Config {Port: config.Port()}); err != nil {
 		return fmt.Errorf("server run: %w", err)
 	}
 	

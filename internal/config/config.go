@@ -27,8 +27,6 @@ func (c *Config) Port() int {
 
 
 
-
-
 func LoadConfig() (*Config, error) {
 	err := godotenv.Load(ConfigFileName)
 	if err != nil {
