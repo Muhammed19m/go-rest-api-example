@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"os"
+	"rest-api/internal/config"
 	"rest-api/internal/model"
 
 	_ "github.com/lib/pq"
@@ -20,9 +20,9 @@ var ErrConnection = errors.New("error connection")
 // InitDB инициализирует соединение с бд.
 // изменить сигнатуру функции:
 // InitDB(config Config) (*sql.DB, error)
-func InitDB() error{
+func InitDB(config *config.Config) error{
 	var err error
-	url_db := os.Getenv("DATABASE_URL")
+	url_db := config.DBHost()
 	db, err = sql.Open("postgres", url_db)
 	if err != nil {
 		return fmt.Errorf("sql open: %w", err)
