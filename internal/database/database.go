@@ -12,7 +12,6 @@ import (
 
 // db - синглтон экземпляр базы данных
 // todo: удалить синглтон и сделать экземпляр бд возращаемым
-var db *sql.DB
 
 var ErrConnection = errors.New("error connection")
 
@@ -20,24 +19,26 @@ var ErrConnection = errors.New("error connection")
 // InitDB инициализирует соединение с бд.
 // изменить сигнатуру функции:
 // InitDB(config Config) (*sql.DB, error)
-func InitDB(config *config.Config) error{
-	var err error
+
+func InitDB(config *config.Config) (*sql.DB, error) {
+	
 	url_db := config.DBHost()
-	db, err = sql.Open("postgres", url_db)
+	db, err := sql.Open("postgres", url_db)
 	if err != nil {
-		return fmt.Errorf("sql open: %w", err)
+		return nil, fmt.Errorf("sql open: %w", err)
 	}
 	
 	err = db.Ping()
 	if err != nil {
-		return fmt.Errorf("dp ping: %w", err)
+		return nil, fmt.Errorf("dp ping: %w", err)
 	} 
-	return nil
+	return db, nil
 }
 
 
 
-func GetBalanceByUUID(uuid int) (int, error) {
+
+func GetBalanceByUUID(db *sql.DB, uuid int) (int, error) {
 	var balance int
 	err := db.QueryRow("SELECT balance FROM wallet WHERE wallet_id = $1;", uuid).Scan(&balance)
 	return balance, err
@@ -45,18 +46,18 @@ func GetBalanceByUUID(uuid int) (int, error) {
 }
 
 
-func CreateWalletByUUID(uuid int, amount int) error {
+func CreateWalletByUUID(db *sql.DB, uuid int, amount int) error {
 	_, err:= db.Exec("INSERT INTO wallet VALUES ($1, $2);", uuid, amount)
 	return err
 }
 
 
-func Deposit(transaction model.Transaction) error {
-	balance, err := GetBalanceByUUID(transaction.WalletId)
+func Deposit(db *sql.DB, transaction model.Transaction) error {
+	balance, err := GetBalanceByUUID(db, transaction.WalletId)
 	if err != nil {
 		// todo: использовать errors.Is
 		if err.Error() == "sql: no rows in result set" {
-			CreateWalletByUUID(transaction.WalletId, transaction.Amount)
+			CreateWalletByUUID(db, transaction.WalletId, transaction.Amount)
 			return nil
  		}
 		return err
@@ -67,11 +68,11 @@ func Deposit(transaction model.Transaction) error {
 	return err
 }
 
-func Withdraw(transaction model.Transaction) error { 
-	balance, err := GetBalanceByUUID(transaction.WalletId)
+func Withdraw(db *sql.DB, transaction model.Transaction) error { 
+	balance, err := GetBalanceByUUID(db, transaction.WalletId)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			CreateWalletByUUID(transaction.WalletId, transaction.Amount)
+			CreateWalletByUUID(db, transaction.WalletId, transaction.Amount)
 			return errors.New("not enough money")
  		}
 		return err

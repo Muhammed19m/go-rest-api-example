@@ -12,10 +12,14 @@ import (
 
 	"github.com/gorilla/mux"
 )
+
+
+
 type Server struct {
-	db *sql.DB
+	Database *sql.DB
 }
-// 
+
+
 
 
 // функция обработчик, которая обрабатывает метод POST
@@ -26,7 +30,7 @@ type Server struct {
 // 	operationType: DEPOSIT or WITHDRAW,
 // 	amount: 1000
 // }`
-func /* (s *Server) */HandleTransaction(w http.ResponseWriter, r *http.Request) {
+func (s *Server) HandleTransaction(w http.ResponseWriter, r *http.Request) {
 	
 	var transaction model.Transaction
 	if err := UnmarshalBody(r, &transaction); err != nil{
@@ -36,12 +40,12 @@ func /* (s *Server) */HandleTransaction(w http.ResponseWriter, r *http.Request) 
 	// +вызов бизнес логики с передачей параметров, полученные из запроса
 	// +обработка результата
 	if transaction.OperationType == model.DEPOSIT {
-		if err:=database.Deposit(transaction); err != nil {
+		if err := database.Deposit(s.Database, transaction); err != nil {
 			http.Error(w, "error "+err.Error(), http.StatusInternalServerError)
 		}
 	} else if transaction.OperationType == model.WITHDRAW {
 		
-		if err:=database.Withdraw(transaction); err != nil {
+		if err:=database.Withdraw(s.Database, transaction); err != nil {
 			http.Error(w, "error"+err.Error(), http.StatusInternalServerError)
 		}
 	} else {
@@ -72,16 +76,16 @@ func UnmarshalBody(r *http.Request, a any) error {
 		// принимает ID кошелька и возращает баланс 
 		
 		// запрос: `GET api/v1/wallets/{WALLET_UUID}`
-func GetBalance(w http.ResponseWriter, r *http.Request) {
+func (s *Server) GetBalance(w http.ResponseWriter, r *http.Request) {
 	wallet_uuid := mux.Vars(r)["WALLET_UUID"]
 
 	uuid, _/* err_conv */ := strconv.ParseInt(wallet_uuid, 10, 32) 
 
-	balance, err := database.GetBalanceByUUID(int(uuid))
+	balance, err := database.GetBalanceByUUID(s.Database, int(uuid))
 
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			database.CreateWalletByUUID(int(uuid), 0)
+			database.CreateWalletByUUID(s.Database, int(uuid), 0)
 			w.Write([]byte("0"))
 		} else {
 			http.Error(w, "Invalid UUID format", http.StatusBadRequest)

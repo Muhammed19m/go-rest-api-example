@@ -11,12 +11,15 @@ import (
 )
 
 func Run(config *config.Config) error {
-	err := database.InitDB(config)
+	
+	db, err := database.InitDB(config)
+	defer db.Close()
+
+	
 	if errors.Is(err, sql.ErrNoRows) {
 	}
-
-	// defer dbhand.Close()
-	if err:= server.Run(server.Config {Port: config.Port()}); err != nil {
+	
+	if err:= server.Run(db, server.Config {Port: config.Port()}); err != nil {
 		return fmt.Errorf("server run: %w", err)
 	}
 	
