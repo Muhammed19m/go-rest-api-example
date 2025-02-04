@@ -1,8 +1,8 @@
 package model
 
 const (
-	DEPOSIT  = "DEPOSIT"
-	WITHDRAW = "WITHDRAW"
+	DEPOSIT  string = "DEPOSIT"
+	WITHDRAW string = "WITHDRAW"
 )
 
 type Transaction struct {

@@ -31,14 +31,19 @@ type Server struct {
 // 	amount: 1000
 // }`
 func (s *Server) HandleTransaction(w http.ResponseWriter, r *http.Request) {
-	
 	var transaction model.Transaction
 	if err := UnmarshalBody(r, &transaction); err != nil{
-
+		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	// +валидация OperationType
+
+	if err := transaction.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}	// +валидация OperationType
+
 	// +вызов бизнес логики с передачей параметров, полученные из запроса
-	// +обработка результата
+
+
+	// +обработка результата 
 	if transaction.OperationType == model.DEPOSIT {
 		if err := database.Deposit(s.Database, transaction); err != nil {
 			http.Error(w, "error "+err.Error(), http.StatusInternalServerError)
@@ -48,9 +53,6 @@ func (s *Server) HandleTransaction(w http.ResponseWriter, r *http.Request) {
 		if err:=database.Withdraw(s.Database, transaction); err != nil {
 			http.Error(w, "error"+err.Error(), http.StatusInternalServerError)
 		}
-	} else {
-		http.Error(w, "Invalid operation type", http.StatusBadRequest)
-		return
 	}
 }
 	
