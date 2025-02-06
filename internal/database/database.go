@@ -10,17 +10,14 @@ import (
 	_ "github.com/lib/pq"
 )
 
-// db - синглтон экземпляр базы данных
-// todo: удалить синглтон и сделать экземпляр бд возращаемым
 
 var ErrConnection = errors.New("error connection")
 
+type Database struct {
+	db *sql.DB
+}
 
-// InitDB инициализирует соединение с бд.
-// изменить сигнатуру функции:
-// InitDB(config Config) (*sql.DB, error)
-
-func InitDB(config *config.Config) (*sql.DB, error) {
+func InitDB(config *config.Config) (*Database, error) {
 	
 	url_db := config.DBHost()
 	db, err := sql.Open("postgres", url_db)
@@ -32,47 +29,47 @@ func InitDB(config *config.Config) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("dp ping: %w", err)
 	} 
-	return db, nil
+	return &Database{db}, nil
 }
 
 
 
 
-func GetBalanceByUUID(db *sql.DB, uuid int) (int, error) {
+func (db *Database) GetBalanceByUUID(uuid int) (int, error) {
 	var balance int
-	err := db.QueryRow("SELECT balance FROM wallet WHERE wallet_id = $1;", uuid).Scan(&balance)
+	err := db.db.QueryRow("SELECT balance FROM wallet WHERE wallet_id = $1;", uuid).Scan(&balance)
 	return balance, err
 
 }
 
 
-func CreateWalletByUUID(db *sql.DB, uuid int, amount int) error {
-	_, err:= db.Exec("INSERT INTO wallet VALUES ($1, $2);", uuid, amount)
+func (db *Database) CreateWalletByUUID(uuid int, amount int) error {
+	_, err:= db.db.Exec("INSERT INTO wallet VALUES ($1, $2);", uuid, amount)
 	return err
 }
 
 
-func Deposit(db *sql.DB, transaction model.Transaction) error {
-	balance, err := GetBalanceByUUID(db, transaction.WalletId)
+func (db *Database) Deposit(transaction model.Transaction) error {
+	balance, err := db.GetBalanceByUUID(transaction.WalletId)
 	if err != nil {
 		// todo: использовать errors.Is
 		if err.Error() == "sql: no rows in result set" {
-			CreateWalletByUUID(db, transaction.WalletId, transaction.Amount)
+			db.CreateWalletByUUID(transaction.WalletId, transaction.Amount)
 			return nil
  		}
 		return err
 	}
-	_, err = db.Exec("UPDATE wallet SET balance = $1 WHERE wallet_id = $2;", balance+transaction.Amount, transaction.WalletId)
+	_, err = db.db.Exec("UPDATE wallet SET balance = $1 WHERE wallet_id = $2;", balance+transaction.Amount, transaction.WalletId)
 	//  todo: использовать update on conflict
 	// db.Exec("INSERT into wallet(wallet_id, balance) VALUES ($1, $2)", balance+transaction.Amount, transaction.WalletId)
 	return err
 }
 
-func Withdraw(db *sql.DB, transaction model.Transaction) error { 
-	balance, err := GetBalanceByUUID(db, transaction.WalletId)
+func (db *Database) Withdraw(transaction model.Transaction) error { 
+	balance, err := db.GetBalanceByUUID(transaction.WalletId)
 	if err != nil {
 		if err.Error() == "sql: no rows in result set" {
-			CreateWalletByUUID(db, transaction.WalletId, transaction.Amount)
+			db.CreateWalletByUUID(transaction.WalletId, transaction.Amount)
 			return errors.New("not enough money")
  		}
 		return err
@@ -83,7 +80,12 @@ func Withdraw(db *sql.DB, transaction model.Transaction) error {
 		return errors.New("not enough money")
 	} else {
 
-		_, err = db.Exec("UPDATE wallet SET balance = $1 WHERE wallet_id = $2;", balance-transaction.Amount, transaction.WalletId)
+		_, err = db.db.Exec("UPDATE wallet SET balance = $1 WHERE wallet_id = $2;", balance-transaction.Amount, transaction.WalletId)
 		return err
 	}
+}
+
+
+func (db *Database) Close() error {
+	return db.db.Close()
 }

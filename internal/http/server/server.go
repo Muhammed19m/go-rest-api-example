@@ -1,9 +1,9 @@
 package server
 
 import (
-	"database/sql"
 	"fmt"
 	"net/http"
+	"rest-api/internal/database"
 	"rest-api/internal/handler"
 
 	"github.com/gorilla/mux"
@@ -13,16 +13,16 @@ import (
 
 
 
-func Run(db *sql.DB, config Config) error {
+func Run(db *database.Database, config Config) error {
 	if err := config.Validate(); err != nil {
 		return fmt.Errorf("validation server config: %w", err)
 	}
 
-	serv := handler.Server{Database: db}
+	server := handler.Server{Database: db}
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/wallet", serv.HandleTransaction).Methods("POST")
-	router.HandleFunc("/api/v1/wallets/{WALLET_UUID}", serv.GetBalance).Methods("GET")
+	router.HandleFunc("/api/v1/wallet", server.HandleTransaction).Methods("POST")
+	router.HandleFunc("/api/v1/wallets/{WALLET_UUID}", server.HandleGetBalance).Methods("GET")
 	http.Handle("/", router)
 
 	err := http.ListenAndServe(fmt.Sprint(":", config.Port), nil)

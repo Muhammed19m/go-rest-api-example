@@ -1,14 +1,13 @@
 package handler
 
 import (
-	"database/sql"
 	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
+	"strconv"
+
 	"rest-api/internal/database"
 	"rest-api/internal/model"
-	"strconv"
+	"rest-api/internal/service"
 
 	"github.com/gorilla/mux"
 )
@@ -16,9 +15,9 @@ import (
 
 
 type Server struct {
-	Database *sql.DB
+	Database *database.Database
+	// Service service.Service
 }
-
 
 
 
@@ -30,75 +29,51 @@ type Server struct {
 // 	operationType: DEPOSIT or WITHDRAW,
 // 	amount: 1000
 // }`
-func (s *Server) HandleTransaction(w http.ResponseWriter, r *http.Request) {
+ func (s *Server) HandleTransaction(w http.ResponseWriter, r *http.Request) {
 	var transaction model.Transaction
+
 	if err := UnmarshalBody(r, &transaction); err != nil{
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	if err := transaction.Validate(); err != nil {
+	err := service.ProccesTransaction(s.Database, transaction)
+	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
-	}	// +валидация OperationType
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+ }
 
-	// +вызов бизнес логики с передачей параметров, полученные из запроса
 
-
-	// +обработка результата 
-	if transaction.OperationType == model.DEPOSIT {
-		if err := database.Deposit(s.Database, transaction); err != nil {
-			http.Error(w, "error "+err.Error(), http.StatusInternalServerError)
-		}
-	} else if transaction.OperationType == model.WITHDRAW {
+// функция обработчик, которая обрабатывает метод GET
+// принимает ID кошелька и возращает баланс 
 		
-		if err:=database.Withdraw(s.Database, transaction); err != nil {
-			http.Error(w, "error"+err.Error(), http.StatusInternalServerError)
-		}
-	}
-}
-	
-func UnmarshalBody(r *http.Request, a any) error {
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		// http.Error(w, "Failed to read request body", http.StatusInternalServerError)
-		return err
-	}
-	defer r.Body.Close()
-	err = json.Unmarshal(body, a)
-	if err != nil {
-		// http.Error(w, "Invalid JSON format", http.StatusBadRequest)
-		return err
-	}
-
-	return nil
-}
-
-	
-	
-		// функция обработчик, которая обрабатывает метод GET
-		// принимает ID кошелька и возращает баланс 
-		
-		// запрос: `GET api/v1/wallets/{WALLET_UUID}`
-func (s *Server) GetBalance(w http.ResponseWriter, r *http.Request) {
+// запрос: `GET api/v1/wallets/{WALLET_UUID}`
+ func (s *Server) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
 	wallet_uuid := mux.Vars(r)["WALLET_UUID"]
-
-	uuid, _/* err_conv */ := strconv.ParseInt(wallet_uuid, 10, 32) 
-
-	balance, err := database.GetBalanceByUUID(s.Database, int(uuid))
+	uuid, err := strconv.ParseInt(wallet_uuid, 10, 32) 
 
 	if err != nil {
-		if err.Error() == "sql: no rows in result set" {
-			database.CreateWalletByUUID(s.Database, int(uuid), 0)
-			w.Write([]byte("0"))
-		} else {
-			http.Error(w, "Invalid UUID format", http.StatusBadRequest)
-		}
-	} else {
-		w.Write([]byte(fmt.Sprint(balance)))
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-}
+	
+	balance, err := service.GetBalance(s.Database, int(uuid))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	resp := ResponseBalance {balance}
 
-// func getIntVarFromPath(path string) (int, error) {}
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+ 	json.NewEncoder(w).Encode(resp)
 
+ }
 
 
 	
+type ResponseBalance struct {
+	Balance int `json:"balance"`
+}
