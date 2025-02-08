@@ -53,11 +53,11 @@ func (db *Database) UpdateWalletBalance(newBalance int, walletId int) error {
 	return err
 }
 
-func (db *Database) UpdateWalletBalanceOrCreateWallet(newBalance int, walletId int) error {
+func (db *Database) UpdateWalletBalanceOrCreateWallet(balance int, walletId int) error {
 	_, err := db.db.Exec(`INSERT INTO wallet (wallet_id, balance)
 	VALUES ($1, $2)
 	ON CONFLICT (wallet_id) DO UPDATE
-	SET balance = wallet.balance + EXCLUDED.balance;`, newBalance, walletId)
+	SET balance = wallet.balance + EXCLUDED.balance;`, walletId, balance)
 	return err
 }
 

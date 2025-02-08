@@ -46,7 +46,11 @@ func GetBalance(db *database.Database, uuid int) (int, error) {
 
 	balance, err := db.GetBalanceByUUID(uuid) 
 	if err != nil {
-		return 0, err
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, ErrWalletNotFound
+		} else {
+			return 0, err
+		}
 	}
 	
 	return balance, nil
@@ -55,16 +59,7 @@ func GetBalance(db *database.Database, uuid int) (int, error) {
 
 
 func deposit(db *database.Database, transaction model.Transaction) error {
-	balance, err := db.GetBalanceByUUID(transaction.WalletId)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			// если нету такого кошелька, то создаем
-			db.CreateWalletByUUID(transaction.WalletId, transaction.Amount)
-			return nil
- 		}
-		return err
-	}
-	err = db.UpdateWalletBalance(balance+transaction.Amount, transaction.WalletId)
+	err := db.UpdateWalletBalanceOrCreateWallet(transaction.Amount, transaction.WalletId)
 	return err
 }
 
