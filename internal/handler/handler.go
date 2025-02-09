@@ -43,6 +43,7 @@ type Server struct {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("successfully"))
  }
 
 

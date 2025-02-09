@@ -67,7 +67,15 @@ func deposit(db *database.Database, transaction model.Transaction) error {
 
 
 func withdraw(db *database.Database, transaction model.Transaction) error {
-	balance, err := db.GetBalanceByUUID(transaction.WalletId)
+	tx, err := db.Begin()
+	defer tx.Rollback()
+
+	if err != nil {
+		return err
+	}
+	var balance int
+	err = tx.QueryRow("SELECT balance FROM wallet WHERE wallet_id = $1;", transaction.WalletId).Scan(&balance)
+
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return ErrWalletNotFound
@@ -78,7 +86,10 @@ func withdraw(db *database.Database, transaction model.Transaction) error {
 	if balance < transaction.Amount {
 		return ErrNoEnoughMoney
 	} else {
-		err := db.UpdateWalletBalance(balance-transaction.Amount, transaction.WalletId)
+		_, err := tx.Exec("UPDATE wallet SET balance = $1 WHERE wallet_id = $2;", balance-transaction.Amount, transaction.WalletId)
+		if err == nil {
+			tx.Commit()
+		}
 		return err
 	}
 }

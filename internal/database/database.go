@@ -42,16 +42,7 @@ func (db *Database) GetBalanceByUUID(uuid int) (int, error) {
 }
 
 
-func (db *Database) CreateWalletByUUID(uuid int, amount int) error {
-	_, err:= db.db.Exec("INSERT INTO wallet VALUES ($1, $2);", uuid, amount)
-	return err
-}
 
-
-func (db *Database) UpdateWalletBalance(newBalance int, walletId int) error {
-	_, err := db.db.Exec("UPDATE wallet SET balance = $1 WHERE wallet_id = $2;", newBalance, walletId)
-	return err
-}
 
 func (db *Database) UpdateWalletBalanceOrCreateWallet(balance int, walletId int) error {
 	_, err := db.db.Exec(`INSERT INTO wallet (wallet_id, balance)
@@ -67,4 +58,9 @@ func (db *Database) UpdateWalletBalanceOrCreateWallet(balance int, walletId int)
 
 func (db *Database) Close() error {
 	return db.db.Close()
+}
+
+
+func (db *Database) Begin() (*sql.Tx, error) {
+	return db.db.Begin()
 }
