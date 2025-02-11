@@ -10,28 +10,41 @@ import (
 )
  
 
+type Server struct {
+	http.Server
+	db *database.Database
+}
 
-
-
-func Run(db *database.Database, config Config) error {
+func Init(db *database.Database, config Config) (*Server, error) {
 	if err := config.Validate(); err != nil {
-		return fmt.Errorf("validation server config: %w", err)
+		return nil, fmt.Errorf("validation server config: %w", err)
 	}
 
-	server := handler.Server{Database: db}
+	server := Server {http.Server{ Addr: fmt.Sprint(":", config.Port)}, db}
+
+	handler := handler.Handler{Database: db}
 
 	router := mux.NewRouter()
-	router.HandleFunc("/api/v1/wallet", server.HandleTransaction).Methods("POST")
-	router.HandleFunc("/api/v1/wallets/{WALLET_UUID}", server.HandleGetBalance).Methods("GET")
+	router.HandleFunc("/api/v1/wallet", handler.HandleTransaction).Methods("POST")
+	router.HandleFunc("/api/v1/wallets/{WALLET_UUID}", handler.HandleGetBalance).Methods("GET")
 	http.Handle("/", router)
 
-	err := http.ListenAndServe(fmt.Sprint(":", config.Port), nil)
+	return &server, nil
+}
+
+
+func (server *Server)Run() error {
+	
+	err := server.ListenAndServe()
 	if err != nil {
 		return fmt.Errorf("http listen and serve: %w", err)
 	}
-
+	
 	return nil
 }
+
+
+
 
 
 

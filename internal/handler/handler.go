@@ -14,7 +14,7 @@ import (
 
 
 
-type Server struct {
+type Handler struct {
 	Database *database.Database
 	// Service service.Service
 }
@@ -29,7 +29,7 @@ type Server struct {
 // 	operationType: DEPOSIT or WITHDRAW,
 // 	amount: 1000
 // }`
- func (s *Server) HandleTransaction(w http.ResponseWriter, r *http.Request) {
+ func (s *Handler) HandleTransaction(w http.ResponseWriter, r *http.Request) {
 	var transaction model.Transaction
 
 	if err := UnmarshalBody(r, &transaction); err != nil{
@@ -51,7 +51,7 @@ type Server struct {
 // принимает ID кошелька и возращает баланс 
 		
 // запрос: `GET api/v1/wallets/{WALLET_UUID}`
- func (s *Server) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
+ func (s *Handler) HandleGetBalance(w http.ResponseWriter, r *http.Request) {
 	wallet_uuid := mux.Vars(r)["WALLET_UUID"]
 	uuid, err := strconv.ParseInt(wallet_uuid, 10, 32) 
 
