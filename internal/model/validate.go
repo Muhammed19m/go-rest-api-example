@@ -10,7 +10,6 @@ var (
 	ErrInvalidAmount = errors.New("invalid amount")
 	ErrInvalidOperationType = errors.New("invalid operation type")
 
-	ErrInvalidUuid = errors.New("Invalid UUID")
 )
 
 
@@ -31,7 +30,7 @@ func (tran *Transaction) Validate() error {
 
 func ValidateUUid(uuid int) error {
 	if uuid <= 0 {
-		return ErrInvalidUuid
+		return ErrInvalidId
 	}
 	return nil
 }
