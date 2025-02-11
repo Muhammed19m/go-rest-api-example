@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"rest-api/internal/database"
@@ -45,7 +46,7 @@ func (server *Server)Run() error {
 
 
 
-
+var ErrInvalidPort = errors.New("port must be in the range 1–65535")	
 
 
 type Config struct {
@@ -54,7 +55,7 @@ type Config struct {
 
 func (c Config) Validate() error {
 	if c.Port < 1 || c.Port > 65535 {
-		return fmt.Errorf("port must be in the range 1–65535")	
+		return ErrInvalidPort 
 	}	
 	return nil
 }
