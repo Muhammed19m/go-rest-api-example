@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"strconv"
 
@@ -38,9 +39,23 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 	
-
+	var (psqlPassword string
+		psqlUser string
+		psqlDB string
+		psqlHost string
+		psqlPort string)
+	
+	psqlPassword = os.Getenv("POSTGRES_PASSWORD")
+	psqlUser = os.Getenv("POSTGRES_USER")
+	psqlDB = os.Getenv("POSTGRES_DB")
+	psqlHost = os.Getenv("POSTGRES_HOST")
+	psqlPort = os.Getenv("POSTGRES_PORT")
+	
+	connStr := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+	psqlHost, psqlUser, psqlPassword, psqlDB, psqlPort)
+	
 	return &Config{
-		dbhost: os.Getenv("DATABASE_URL"),
+		dbhost: connStr,
 		port: int(port),
 	}, nil
 }
