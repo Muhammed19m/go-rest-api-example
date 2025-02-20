@@ -3,13 +3,12 @@ package config
 import (
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/joho/godotenv"
 )
 const ConfigFileName = "config.env"
 
-
+const PORT = 8000;
 
 type Config struct {
 	dbhost string 
@@ -34,10 +33,10 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
-	port, err := strconv.ParseInt(os.Getenv("PORT"), 10, 32)
-	if err != nil {
-		return nil, err
-	}
+	// port, err := strconv.ParseInt(os.Getenv("PORT"), 10, 32)
+	// if err != nil {
+	// 	return nil, err
+	// }
 	
 	var (psqlPassword string
 		psqlUser string
@@ -56,6 +55,6 @@ func LoadConfig() (*Config, error) {
 	
 	return &Config{
 		dbhost: connStr,
-		port: int(port),
+		port: PORT,
 	}, nil
 }
